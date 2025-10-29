@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mão de Obra Escrava Africana - Sequência Didática</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+  </head>
+  <body class="bg-slate-900 text-slate-100">
+    <div id="root"></div>
+    <script type="text/babel" data-type="module">
+      import React, { useState, useCallback, StrictMode } from 'react';
+      import ReactDOM from 'react-dom/client';
+
+      // --- Tipos de Questão ---
+      const QuestionType = {
+        MultipleChoice: 'MultipleChoice',
+        TrueFalse: 'TrueFalse',
+        FillInTheBlank: 'FillInTheBlank',
+      };
+
+      // --- Componente: ProgressBar ---
+      const ProgressBar = ({ current, total }) => {
+        const progressPercentage = (current / total) * 100;
+
+        return (
+          <div className="w-full bg-slate-700 rounded-full h-2.5 mb-4">
+            <div
+              className="bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+        );
+      };
+
+      // --- Componente: QuestionCard e sub-componentes ---
+      const MultipleChoiceQuestion = ({ question, userAnswer, onAnswer }) => {
+        const getButtonClass = (optionText) => {
+          if (!userAnswer) {
+            return 'bg-slate-700 hover:bg-slate-600';
+          }
+          const option = question.options?.find(o => o.text === optionText);
+          if (userAnswer.answer === optionText) {
+            return option?.isCorrect ? 'bg-green-600' : 'bg-red-600';
+          }
+          if (option?.isCorrect) {
+            return 'bg-green-600';
+          }
+          return 'bg-slate-800 opacity-50';
+        };
+
+        return (
+          <div className="space-y-4">
+            {question.options?.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => onAnswer(option.text)}
+                disabled={!!userAnswer}
+                className={`w-full text-left p-4 rounded-lg transition-colors duration-200 ${getButtonClass(option.text)}`}
+              >
+                <span className="font-bold mr-2">{String.fromCharCode(65 + index)}.</span> {option.text}
+              </button>
+            ))}
+          </div>
+        );
+      };
+
+      const TrueFalseQuestion = ({ question, userAnswer, onAnswer }) => {
+          const getButtonClass = (optionText) => {
+          if (!userAnswer) {
+            return 'bg-slate-700 hover:bg-slate-600';
+          }
+          const option = question.options?.find(o => o.text === optionText);
+          if (userAnswer.answer === optionText) {
+            return option?.isCorrect ? 'bg-green-600' : 'bg-red-600';
+          }
+          if (option?.isCorrect) {
+            return 'bg-green-600';
+          }
+          return 'bg-slate-800 opacity-50';
+        };
+
+        return (
+          <div className="flex space-x-4">
+            {question.options?.map((option, index) => (
+              <button
+                key={index}
+                onClick={() => onAnswer(option.text)}
+                disabled={!!userAnswer}
+                className={`flex-1 p-4 rounded-lg transition-colors duration-200 font-bold text-lg ${getButtonClass(option.text)}`}
+              >
+                {option.text}
+              </button>
+            ))}
+          </div>
+        );
+      };
+
+      const FillInTheBlankQuestion = ({ question, userAnswer, onAnswer }) => {
+        const [inputValue, setInputValue] = React.useState('');
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (inputValue.trim()) {
+            onAnswer(inputValue.trim());
+          }
+        };
+
+        const isCorrect = userAnswer && userAnswer.isCorrect;
+
+        return (
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-4">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              disabled={!!userAnswer}
+              className={`flex-grow w-full p-3 rounded-lg bg-slate-800 border-2 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                ${userAnswer ? (isCorrect ? 'border-green-500' : 'border-red-500') : 'border-slate-600'}`}
+              placeholder="Digite sua resposta"
+            />
+            <button
+              type="submit"
+              disabled={!!userAnswer || !inputValue.trim()}
+              className="w-full sm:w-auto px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+            >
+              Verificar
+            </button>
+          </form>
+        );
+      };
+
+      const QuestionCard = ({ question, userAnswer, onAnswer }) => {
+        return (
+          <div className="bg-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl w-full max-w-3xl animate-fade-in">
+            <p className="text-lg md:text-xl font-medium text-slate-300 mb-6 leading-relaxed" dangerouslySetInnerHTML={{ __html: question.text }} />
+            
+            {question.type === QuestionType.MultipleChoice && <MultipleChoiceQuestion question={question} userAnswer={userAnswer} onAnswer={onAnswer} />}
+            {question.type === QuestionType.TrueFalse && <TrueFalseQuestion question={question} userAnswer={userAnswer} onAnswer={onAnswer} />}
+            {question.type === QuestionType.FillInTheBlank && <FillInTheBlankQuestion question={question} userAnswer={userAnswer} onAnswer={onAnswer} />}
+
+            {userAnswer && (
+              <div className={`mt-6 p-4 rounded-lg animate-fade-in-up ${userAnswer.isCorrect ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+                <p><span className="font-bold">{userAnswer.isCorrect ? 'Correto!' : 'Incorreto.'}</span> {question.feedback}</p>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // --- Componente Principal: App ---
+      const QUIZ_DATA = [
+        {
+          id: 1,
+          type: QuestionType.MultipleChoice,
+          text: "Por que os índios brasileiros não se adaptaram bem ao trabalho nas plantações de açúcar?",
+          options: [
+            { text: "Porque preferiam trabalhar nas minas de ouro e prata.", isCorrect: false },
+            { text: "Devido à sua constituição física, por não estarem habituados a trabalhos agrícolas duros e pela falta de resistência a doenças europeias.", isCorrect: true },
+            { text: "Porque os jesuítas os proibiram de trabalhar para os colonos.", isCorrect: false },
+            { text: "Eles se adaptaram bem, mas foram substituídos por africanos por serem mais baratos.", isCorrect: false },
+          ],
+          feedback: "Os índios eram caçadores-coletores, e sua fraca constituição física e vulnerabilidade a doenças europeias foram fatores decisivos para a não adaptação."
+        },
+        {
+          id: 2,
+          type: QuestionType.TrueFalse,
+          text: "Os escravos africanos eram obtidos unicamente através da captura por traficantes.",
+          options: [
+              { text: "Verdadeiro", isCorrect: false },
+              { text: "Falso", isCorrect: true },
+          ],
+          feedback: "É falso. O texto menciona que eles podiam ser comprados a chefes locais, ser prisioneiros de guerra ou capturados por traficantes."
+        },
+        {
+          id: 3,
+          type: QuestionType.FillInTheBlank,
+          text: "Os navios que transportavam os escravos eram conhecidos como navios negreiros ou __________, onde as condições eram terríveis.",
+          correctAnswer: "tumbeiros",
+          feedback: "Os navios eram também chamados de 'tumbeiros', uma alusão às 'tumbas', devido ao altíssimo número de mortes durante as viagens."
+        },
+        {
+          id: 4,
+          type: QuestionType.MultipleChoice,
+          text: "Além do trabalho nos engenhos de açúcar, em que outra atividade econômica os escravos foram amplamente utilizados no Brasil?",
+          options: [
+            { text: "Na construção de navios para Portugal.", isCorrect: false },
+            { text: "No comércio de especiarias com a Ásia.", isCorrect: false },
+            { text: "Na mineração de ouro e pedras preciosas.", isCorrect: true },
+            { text: "Na administração das colônias portuguesas.", isCorrect: false },
+          ],
+          feedback: "O texto afirma claramente que, além dos engenhos, os escravos também trabalhavam nas minas de ouro e de pedras preciosas."
+        },
+        {
+          id: 5,
+          type: QuestionType.MultipleChoice,
+          text: "A partir do século XVII, qual grupo religioso se destacou na prestação de assistência social e religiosa aos escravos e índios?",
+          options: [
+            { text: "Franciscanos", isCorrect: false },
+            { text: "Beneditinos", isCorrect: false },
+            { text: "Dominicanos", isCorrect: false },
+            { text: "Jesuítas", isCorrect: true },
+          ],
+          feedback: "Foram os Jesuítas, com destaque para o Padre António Vieira, que realizaram esse trabalho de assistência."
+        },
+      ];
+
+      const TOTAL_STEPS = QUIZ_DATA.length + 2; // Intro + Questions + Results
+
+      const IntroductionStep = () => (
+        <div className="bg-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl w-full max-w-4xl animate-fade-in">
+          <h1 className="text-3xl md:text-4xl font-bold text-center mb-4 text-indigo-400">Mão de Obra Escrava Africana</h1>
+          <p className="text-lg text-slate-300 text-center mb-8">Vamos explorar o texto e o mapa para entender este período da história.</p>
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="lg:w-1/2">
+              <img src="./image1.jpg" alt="Mapa do tráfico de escravos da África para o Brasil" className="rounded-lg shadow-lg w-full" />
+            </div>
+            <div className="lg:w-1/2 space-y-4 text-slate-300 leading-relaxed">
+              <p>Os índios brasileiros, habituados a viverem da caça e da recoleção, não se adaptaram aos trabalhos duros das plantações de açúcar. A sua fraca constituição física e o facto de não resistirem às doenças europeias, transmitidas pelos colonos, foi outro motivo da não adaptação. Da costa africana partiram, então, milhares de escravos em direção ao Brasil.</p>
+              <p>Os escravos podiam ser comprados a chefes locais, prisioneiros de guerra ou capturados pelos traficantes. Eram depois marcados com um ferro em brasa e levados para armazéns, ou prisões, até serem transportados para o seu destino.</p>
+            </div>
+          </div>
+        </div>
+      );
+
+      const ResultsStep = ({ answers, onRestart }) => {
+        const correctAnswers = answers.filter(a => a.isCorrect).length;
+        const score = (correctAnswers / QUIZ_DATA.length) * 100;
+
+        return (
+          <div className="bg-slate-800 rounded-2xl p-8 md:p-12 shadow-2xl w-full max-w-2xl text-center animate-fade-in">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-indigo-400">Sequência Concluída!</h2>
+            <p className="text-xl text-slate-300 mb-8">Você acertou {correctAnswers} de {QUIZ_DATA.length} perguntas.</p>
+            
+            <div className="w-full bg-slate-700 rounded-full h-8 mb-8">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-emerald-500 h-8 rounded-full flex items-center justify-center text-white font-bold transition-all duration-1000 ease-out"
+                style={{ width: `${score}%` }}
+              >
+                {score.toFixed(0)}%
+              </div>
+            </div>
+
+            <button
+              onClick={onRestart}
+              className="mt-6 px-8 py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-colors text-lg"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        );
+      };
+
+      function App() {
+        const [currentStep, setCurrentStep] = useState(0);
+        const [userAnswers, setUserAnswers] = useState([]);
+
+        const handleAnswer = useCallback((answer) => {
+          const questionIndex = currentStep - 1;
+          const question = QUIZ_DATA[questionIndex];
+          if (!question) return;
+
+          let isCorrect = false;
+          if (question.type === QuestionType.FillInTheBlank) {
+              isCorrect = answer.toLowerCase() === question.correctAnswer?.toLowerCase();
+          } else {
+              const selectedOption = question.options?.find(o => o.text === answer);
+              isCorrect = selectedOption?.isCorrect || false;
+          }
+          
+          setUserAnswers(prev => [...prev.filter(a => a.questionId !== question.id), { questionId: question.id, answer, isCorrect }]);
+        }, [currentStep]);
+        
+        const handleNext = () => {
+          if (currentStep < TOTAL_STEPS - 1) {
+            setCurrentStep(currentStep + 1);
+          }
+        };
+
+        const handleBack = () => {
+          if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+          }
+        };
+
+        const handleRestart = () => {
+          setCurrentStep(0);
+          setUserAnswers([]);
+        };
+
+        const renderContent = () => {
+          if (currentStep === 0) {
+            return <IntroductionStep />;
+          }
+          if (currentStep > 0 && currentStep <= QUIZ_DATA.length) {
+            const questionIndex = currentStep - 1;
+            const question = QUIZ_DATA[questionIndex];
+            const userAnswer = userAnswers.find(a => a.questionId === question.id);
+            return <QuestionCard question={question} onAnswer={handleAnswer} userAnswer={userAnswer} />;
+          }
+          if (currentStep === TOTAL_STEPS -1) {
+              return <ResultsStep answers={userAnswers} onRestart={handleRestart} />;
+          }
+          return null;
+        };
+        
+        const questionIndex = currentStep - 1;
+        const currentQuestion = QUIZ_DATA[questionIndex];
+        const currentAnswer = currentQuestion ? userAnswers.find(a => a.questionId === currentQuestion.id) : undefined;
+        const isNextDisabled = currentStep > 0 && currentStep <= QUIZ_DATA.length && !currentAnswer;
+
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
+            <div className="w-full max-w-4xl mb-4">
+              <ProgressBar current={currentStep} total={TOTAL_STEPS - 1} />
+            </div>
+            
+            <main className="flex-grow flex items-center justify-center w-full">
+              {renderContent()}
+            </main>
+
+            <footer className="sticky bottom-0 left-0 w-full p-4 bg-slate-900/50 backdrop-blur-sm">
+              <div className="max-w-4xl mx-auto flex justify-between items-center">
+                <button 
+                  onClick={handleBack} 
+                  disabled={currentStep === 0}
+                  className="px-6 py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+                >
+                  Anterior
+                </button>
+                <div className="text-sm text-slate-400">
+                  Passo {currentStep + 1} de {TOTAL_STEPS}
+                </div>
+                <button 
+                  onClick={handleNext} 
+                  disabled={isNextDisabled || currentStep === TOTAL_STEPS - 1}
+                  className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  {currentStep < QUIZ_DATA.length ? 'Próximo' : 'Ver Resultados'}
+                </button>
+              </div>
+            </footer>
+            <style>{`
+                .animate-fade-in {
+                  animation: fadeIn 0.5s ease-in-out;
+                }
+                .animate-fade-in-up {
+                  animation: fadeInUp 0.5s ease-in-out;
+                }
+                @keyframes fadeIn {
+                  from { opacity: 0; }
+                  to { opacity: 1; }
+                }
+                @keyframes fadeInUp {
+                  from { opacity: 0; transform: translateY(20px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+          </div>
+        );
+      }
+
+      // --- Ponto de Entrada da Aplicação ---
+      const rootElement = document.getElementById('root');
+      if (!rootElement) {
+        throw new Error("Could not find root element to mount to");
+      }
+
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <StrictMode>
+          <App />
+        </StrictMode>
+      );
+    </script>
+  </body>
+</html>
